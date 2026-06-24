@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数式整形ツール</title>
+<link rel="icon" href="favicon-64.png">
+<meta name="theme-color" content="#1a73e8">
+
+<style>
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --surface2: #f1f3f4;
+  --border: #dadce0;
+  --text: #202124;
+  --text2: #5f6368;
+  --accent: #1a73e8;
+  --accent-hover: #1557b0;
+  --shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+  --radius: 12px;
+  --font: 'Segoe UI', 'Noto Sans JP', sans-serif;
+}
+.dark {
+  --bg: #1a1a2e;
+  --surface: #16213e;
+  --surface2: #0f3460;
+  --border: #2d3561;
+  --text: #e0e0e0;
+  --text2: #9aa0a6;
+  --accent: #4da6ff;
+  --accent-hover: #7bbfff;
+  --shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background .3s, color .3s;
+  padding: 0 0 60px;
+}
+
+header {
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+header h1 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+header h1 span { font-size: 22px; }
+
+.header-actions { display: flex; gap: 8px; align-items: center; }
+
+.icon-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text2);
+  cursor: pointer;
+  font-size: 18px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .2s;
+}
+.icon-btn:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-header {
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+
+textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 14px 16px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  background: var(--surface);
+  color: var(--text);
+  border: none;
+  outline: none;
+  resize: vertical;
+  transition: background .3s, color .3s;
+}
+
+.tip {
+  padding: 0 16px 14px;
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+/* ── Preview ───────────────────────────────────────── */
+.preview-area {
+  padding: 28px 24px;
+  min-height: 100px;
+  background: #ffffff;
+  color: #202124;
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+.dark .preview-area { background: #fbfbfd; }
+
+.placeholder {
+  text-align: center;
+  color: #9aa0a6;
+  font-size: 14px;
+  padding: 24px 0;
+}
+
+/* Natural textbook-like flow */
+.para {
+  font-size: 16px;
+  line-height: 2;
+  margin: 6px 0;
+  color: #202124;
+}
+.display-math {
+  text-align: center;
+  font-size: 22px;
+  margin: 18px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.cleaned-wrap {
+  border-top: 1px solid var(--border);
+}
+.cleaned-head {
+  padding: 10px 16px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+.cleaned-src {
+  padding: 4px 16px 14px;
+  font-family: 'Consolas', monospace;
+  font-size: 12px;
+  color: var(--text2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.action-bar {
+  display: flex;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+}
+.btn {
+  flex: 1;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent-hover); }
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #333;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 999;
+  transition: transform .3s;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 500px) {
+  .display-math { font-size: 18px; }
+  .para { font-size: 15px; }
+}
+</style>
+
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['\\(','\\)']],
+    displayMath: [['\\[','\\]']],
+    tags: 'none'
+  },
+  options: { skipHtmlTags: ['script','noscript','style','textarea','pre'] },
+  startup: { typeset: false }   // ページ全体の自動変換は無効。プレビュー欄だけ手動でtypesetする
+};
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+</head>
+<body>
+
+<header>
+  <h1><span>∑</span> 数式整形ツール</h1>
+  <div class="header-actions">
+    <button class="icon-btn" id="clearBtn" title="クリア">✕</button>
+    <button class="icon-btn" id="darkBtn" title="ダークモード">🌙</button>
+  </div>
+</header>
+
+<main>
+  <!-- 入力 -->
+  <div class="card">
+    <div class="card-header">LaTeX 入力</div>
+    <textarea id="inputArea" placeholder="LaTeX数式を貼り付けてください&#10;例: $$\frac{\lambda}{4} = L_1$$&#10;日本語と混ざっていても、数式だけ変換します"></textarea>
+    <div class="tip">$$…$$ ・ \[…\] ・ \(…\) ・ $…$ の区切り記号は自動で除去します。区切りが無い場合は全体を数式として表示します。</div>
+  </div>
+
+  <!-- 結果 -->
+  <div class="card">
+    <div class="card-header">変換結果</div>
+    <div class="preview-area" id="previewArea">
+      <div class="placeholder">数式を入力すると、ここに表示されます</div>
+    </div>
+    <div class="cleaned-wrap" id="cleanedWrap" style="display:none">
+      <div class="cleaned-head">整形済み LaTeX</div>
+      <div class="cleaned-src" id="cleanedSrc"></div>
+    </div>
+    <div class="action-bar">
+      <button class="btn btn-primary" id="copyBtn">📋 整形済みLaTeXをコピー</button>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── 解析: 区切り記号で数式と日本語テキストを分離 ──────────────
+function parse(raw) {
+  const re = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$(?!\$)([^$\n]+?)\$/g;
+  const segs = [];
+  let last = 0, m;
+  while ((m = re.exec(raw)) !== null) {
+    const before = raw.slice(last, m.index);
+    if (before.trim()) segs.push({ type: 'text', content: before });
+    if      (m[1] !== undefined) segs.push({ type: 'display', latex: m[1].trim() });
+    else if (m[2] !== undefined) segs.push({ type: 'display', latex: m[2].trim() });
+    else if (m[3] !== undefined) segs.push({ type: 'inline',  latex: m[3].trim() });
+    else if (m[4] !== undefined) segs.push({ type: 'inline',  latex: m[4].trim() });
+    last = m.index + m[0].length;
+  }
+  const tail = raw.slice(last);
+  if (tail.trim()) segs.push({ type: 'text', content: tail });
+
+  // 区切り記号が無い（数式が1つも無い）場合は、入力全体を数式扱い
+  if (!segs.some(s => s.type !== 'text')) {
+    return [{ type: 'display', latex: raw.trim() }];
+  }
+  return segs;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── 整形済みLaTeXを組み立てる（コピー用） ──────────────────────
+function buildCleaned(segs) {
+  return segs.map(s => {
+    if (s.type === 'text')    return s.content.trim();
+    if (s.type === 'display') return `\\[${s.latex}\\]`;
+    return `\\(${s.latex}\\)`;
+  }).filter(Boolean).join('\n');
+}
+
+// ── レンダリング ──────────────────────────────────────────────
+let renderTimer = null;
+let lastCleaned = '';
+
+async function render() {
+  const raw = document.getElementById('inputArea').value;
+  const area = document.getElementById('previewArea');
+  const wrap = document.getElementById('cleanedWrap');
+
+  if (!raw.trim()) {
+    area.innerHTML = '<div class="placeholder">数式を入力すると、ここに表示されます</div>';
+    wrap.style.display = 'none';
+    lastCleaned = '';
+    return;
+  }
+
+  const segs = parse(raw);
+  lastCleaned = buildCleaned(segs);
+
+  // 教科書のように、テキストとインライン数式は同じ行に、ディスプレイ数式は中央のブロックに
+  let html = '';
+  let para = '';
+  const flush = () => { if (para.trim()) html += `<p class="para">${para}</p>`; para = ''; };
+
+  for (const s of segs) {
+    if (s.type === 'display') {
+      flush();
+      html += `<div class="display-math">\\[${s.latex}\\]</div>`;
+    } else if (s.type === 'inline') {
+      para += ` \\(${s.latex}\\) `;
+    } else {
+      para += escapeHtml(s.content).replace(/\n/g, '<br>');
+    }
+  }
+  flush();
+
+  area.innerHTML = html;
+  document.getElementById('cleanedSrc').textContent = lastCleaned;
+  wrap.style.display = 'block';
+
+  if (window.MathJax?.typesetPromise) {
+    await MathJax.typesetPromise([area]);
+  }
+}
+
+// ── イベント ──────────────────────────────────────────────────
+document.getElementById('inputArea').addEventListener('input', () => {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(render, 300);
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  document.getElementById('inputArea').value = '';
+  render();
+});
+
+// ── コピー ────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+document.getElementById('copyBtn').addEventListener('click', () => {
+  if (!lastCleaned) return showToast('数式を入力してください');
+  navigator.clipboard.writeText(lastCleaned)
+    .then(() => showToast('📋 コピーしました'))
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = lastCleaned; document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+      showToast('📋 コピーしました');
+    });
+});
+
+// ── ダークモード ──────────────────────────────────────────────
+const darkBtn = document.getElementById('darkBtn');
+const saved = localStorage.getItem('dark');
+if (saved === '1' || (saved === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+  setDark(true);
+}
+darkBtn.addEventListener('click', () => setDark(!document.body.classList.contains('dark')));
+
+function setDark(on) {
+  document.body.classList.toggle('dark', on);
+  darkBtn.textContent = on ? '☀️' : '🌙';
+  localStorage.setItem('dark', on ? '1' : '0');
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = on ? '#0f3460' : '#1a73e8';
+}
+</script>
+</body>
+</html>
